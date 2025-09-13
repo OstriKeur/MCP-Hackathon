@@ -1,4 +1,17 @@
-# dependencies
+# Python
+__pycache__/
+
+
+# Virtual environments
+.venv/
+.env
+
+# Docker
+.dockerignore
+
+# uv
+.python-version
+uv.lock# dependencies
 node_modules/
 .pnp
 .pnp.js
