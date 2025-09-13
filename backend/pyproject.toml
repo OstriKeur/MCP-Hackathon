@@ -9,4 +9,5 @@ dependencies = [
     "uvicorn[standard]",
     "mistralai",
     "requests>=2.32.5",
+    "dotenv>=0.9.9",
 ]

@@ -6,7 +6,10 @@ import uuid
 import random
 import json
 import os
+import dotenv
 from mistralai import Mistral
+
+dotenv.load_dotenv()
 
 app = FastAPI(title="Game Session API")
 
@@ -20,8 +23,7 @@ app.add_middleware(
 )
 
 # Mistral AI client (you'll need to set MISTRAL_API_KEY environment variable)
-MISTRAL_API_KEY = "W5WB3lZcbTrWUESXunuO6j9C1lt45xii"  # Replace with actual key or use env var
-mistral_client = Mistral(api_key=MISTRAL_API_KEY)
+mistral_client = Mistral(api_key=os.environ["MISTRAL_API_KEY"])
 
 # In-memory storage: session_id → { users, scores, current_question }
 sessions: Dict[str, dict] = {}
@@ -71,24 +73,50 @@ async def generate_questions_with_mistral(theme: str, num_questions: int = 3) ->
     """
     
     try:
+        print(f"🤖 Generating questions with Mistral AI for theme: {theme}")
         response = mistral_client.chat.complete(
-            model="mistral-large-latest",
+            model="mistral-medium-2508",
             messages=[{"role": "user", "content": prompt}]
         )
         
         # Parse the JSON response
         questions_text = response.choices[0].message.content.strip()
+        print(f"📝 Raw AI response: {questions_text[:100]}...")
+        
+        if not questions_text:
+            raise ValueError("Empty response from Mistral API")
+        
+        # Remove markdown code block formatting if present
+        if questions_text.startswith("```json"):
+            questions_text = questions_text[7:]  # Remove ```json
+        if questions_text.startswith("```"):
+            questions_text = questions_text[3:]   # Remove ```
+        if questions_text.endswith("```"):
+            questions_text = questions_text[:-3]  # Remove trailing ```
+        
+        questions_text = questions_text.strip()
+        print(f"🧹 Cleaned response: {questions_text[:100]}...")
+        
         questions = json.loads(questions_text)
+        
+        # Validate the response structure
+        if not isinstance(questions, list) or len(questions) == 0:
+            raise ValueError("Invalid questions format from AI")
         
         # Ensure questions have proper IDs
         for i, question in enumerate(questions):
             question["id"] = i + 1
         
+        print(f"✅ Successfully generated {len(questions)} questions")
         return questions
         
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON parsing error: {e}")
+        print(f"   Raw response was: {questions_text if 'questions_text' in locals() else 'No response received'}")
+        return random.sample(QUESTIONS, min(num_questions, len(QUESTIONS)))
     except Exception as e:
-        print(f"Error generating questions with Mistral: {e}")
-        # Fallback to default questions if AI fails
+        print(f"❌ Error generating questions with Mistral: {e}")
+        print(f"   Falling back to default questions for theme: {theme}")
         return random.sample(QUESTIONS, min(num_questions, len(QUESTIONS)))
 
 # Endpoints
