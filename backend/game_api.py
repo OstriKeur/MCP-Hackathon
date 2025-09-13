@@ -50,20 +50,20 @@ class AnswerRequest(BaseModel):
     user_id: str
     answer: int
 
+# Pydantic models for structured output from Mistral AI
+class QuizQuestion(BaseModel):
+    id: int
+    question: str
+    options: List[str]
+    correct: int
+
+class QuizQuestions(BaseModel):
+    questions: List[QuizQuestion]
+
 async def generate_questions_with_mistral(theme: str, num_questions: int = 3) -> List[dict]:
-    """Generate questions using Mistral AI based on theme"""
+    """Generate questions using Mistral AI based on theme with structured output"""
     
     prompt = f"""Generate {num_questions} multiple choice quiz questions about {theme}. 
-    
-    Return ONLY a valid JSON array with this exact format:
-    [
-        {{
-            "id": 1,
-            "question": "Question text here?",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "correct": 2
-        }}
-    ]
     
     Make sure:
     - Each question has exactly 4 options
@@ -74,46 +74,42 @@ async def generate_questions_with_mistral(theme: str, num_questions: int = 3) ->
     
     try:
         print(f"🤖 Generating questions with Mistral AI for theme: {theme}")
-        response = mistral_client.chat.complete(
+        
+        # Use chat.parse with structured output
+        response = mistral_client.chat.parse(
             model="mistral-medium-2508",
-            messages=[{"role": "user", "content": prompt}]
+            messages=[
+                {
+                    "role": "system", 
+                    "content": "You are a quiz question generator. Generate engaging multiple-choice questions."
+                },
+                {
+                    "role": "user", 
+                    "content": prompt
+                }
+            ],
+            response_format=QuizQuestions,
+            max_tokens=1000,
+            temperature=0.7
         )
         
-        # Parse the JSON response
-        questions_text = response.choices[0].message.content.strip()
-        print(f"📝 Raw AI response: {questions_text[:100]}...")
+        # Get the parsed Pydantic object
+        quiz_data = response.choices[0].message.parsed
         
-        if not questions_text:
-            raise ValueError("Empty response from Mistral API")
+        if not quiz_data or not quiz_data.questions:
+            raise ValueError("No questions received from Mistral API")
         
-        # Remove markdown code block formatting if present
-        if questions_text.startswith("```json"):
-            questions_text = questions_text[7:]  # Remove ```json
-        if questions_text.startswith("```"):
-            questions_text = questions_text[3:]   # Remove ```
-        if questions_text.endswith("```"):
-            questions_text = questions_text[:-3]  # Remove trailing ```
+        # Convert to list of dicts and ensure proper IDs
+        questions = []
+        for i, question in enumerate(quiz_data.questions):
+            question_dict = question.model_dump()
+            question_dict["id"] = i + 1
+            questions.append(question_dict)
         
-        questions_text = questions_text.strip()
-        print(f"🧹 Cleaned response: {questions_text[:100]}...")
-        
-        questions = json.loads(questions_text)
-        
-        # Validate the response structure
-        if not isinstance(questions, list) or len(questions) == 0:
-            raise ValueError("Invalid questions format from AI")
-        
-        # Ensure questions have proper IDs
-        for i, question in enumerate(questions):
-            question["id"] = i + 1
-        
-        print(f"✅ Successfully generated {len(questions)} questions")
+        print(f"✅ Successfully generated {len(questions)} questions using structured output")
+        print(f"📝 First question: {questions[0]['question']}")
         return questions
         
-    except json.JSONDecodeError as e:
-        print(f"❌ JSON parsing error: {e}")
-        print(f"   Raw response was: {questions_text if 'questions_text' in locals() else 'No response received'}")
-        return random.sample(QUESTIONS, min(num_questions, len(QUESTIONS)))
     except Exception as e:
         print(f"❌ Error generating questions with Mistral: {e}")
         print(f"   Falling back to default questions for theme: {theme}")
@@ -140,6 +136,7 @@ async def create_session(request: CreateSessionRequest = CreateSessionRequest())
         "theme": request.theme
     }
     
+    print(questions)
     # Returns unique session_id plus additional info
     return {
         "session_id": session_id,

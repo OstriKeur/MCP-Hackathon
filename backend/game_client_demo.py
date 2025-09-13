@@ -137,9 +137,9 @@ def test_single_game(theme="general knowledge"):
 def test_multiple_themes():
     """Test the API with different themes to showcase AI question generation"""
     themes = [
-        "space and astronomy",
+        "food",
         "world history", 
-        "computer science",
+        "girls health",
         "general knowledge"
     ]
     
