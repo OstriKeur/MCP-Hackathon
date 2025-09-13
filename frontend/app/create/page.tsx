@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useSearchParams } from "next/navigation"
+import { GameAPI } from "@/lib/api/game-api"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -94,10 +95,32 @@ export default function CreateGamePage() {
     }
   }
 
-  const publishGame = () => {
+  const publishGame = async () => {
     if (!gameTitle.trim() || questions.length === 0) {
       alert("Please add a title and at least one question")
       return
+    }
+
+    try {
+      // Call createSession with the quiz title as theme
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/create-session`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: gameTitle }),
+      })
+      // Save the quiz
+      await GameAPI.saveQuiz({
+        title: gameTitle,
+        questions: questions.map(q => ({
+          question: q.question,
+          answers: q.answers,
+          correctAnswer: q.correctAnswer,
+          timeLimit: q.timeLimit,
+          explanation: q.explanation,
+        })),
+      })
+    } catch (err) {
+      console.error("Failed to save quiz to backend", err)
     }
 
     window.location.href = `/waiting/${gameCode}?host=true&theme=${theme}`
@@ -124,7 +147,7 @@ export default function CreateGamePage() {
               </Badge>
               <Button onClick={publishGame} className="bg-primary hover:bg-primary/90">
                 <Play className="h-4 w-4 mr-2" />
-                Start Game
+                Launch Game
               </Button>
             </div>
           </div>

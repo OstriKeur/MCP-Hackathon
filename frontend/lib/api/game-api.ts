@@ -1,3 +1,14 @@
+// Save quiz (title and questions)
+export interface SaveQuizRequest {
+  title: string
+  questions: Array<{
+    question: string
+    answers: string[]
+    correctAnswer: number
+    timeLimit: number
+    explanation?: string
+  }>
+}
 import type {
   AddUserRequest,
   AddUserResponse,
@@ -47,6 +58,14 @@ async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 // API Service Class
 export class GameAPI {
+  // Save quiz to backend
+  static async saveQuiz(request: SaveQuizRequest): Promise<{ success: boolean }> {
+    console.log("Saving quiz to backend:", request)
+    return apiCall("/quiz", {
+      method: "POST",
+      body: JSON.stringify(request),
+    })
+  }
   // Health check
   static async healthCheck(): Promise<{ message: string }> {
     return apiCall("/")
