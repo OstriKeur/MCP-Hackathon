@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Dict, List
+from typing import Dict, List, Optional
 import uuid
 import random
+import json
+import os
+from mistralai import Mistral
 
 app = FastAPI(title="Game Session API")
 
@@ -15,6 +18,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Mistral AI client (you'll need to set MISTRAL_API_KEY environment variable)
+MISTRAL_API_KEY = "W5WB3lZcbTrWUESXunuO6j9C1lt45xii"  # Replace with actual key or use env var
+mistral_client = Mistral(api_key=MISTRAL_API_KEY)
 
 # In-memory storage: session_id → { users, scores, current_question }
 sessions: Dict[str, dict] = {}
@@ -29,6 +36,9 @@ QUESTIONS = [
 ]
 
 # Request models
+class CreateSessionRequest(BaseModel):
+    theme: Optional[str] = "general knowledge"
+
 class AddUserRequest(BaseModel):
     name: str
     session_id: str
@@ -38,24 +48,76 @@ class AnswerRequest(BaseModel):
     user_id: str
     answer: int
 
+async def generate_questions_with_mistral(theme: str, num_questions: int = 3) -> List[dict]:
+    """Generate questions using Mistral AI based on theme"""
+    
+    prompt = f"""Generate {num_questions} multiple choice quiz questions about {theme}. 
+    
+    Return ONLY a valid JSON array with this exact format:
+    [
+        {{
+            "id": 1,
+            "question": "Question text here?",
+            "options": ["Option A", "Option B", "Option C", "Option D"],
+            "correct": 2
+        }}
+    ]
+    
+    Make sure:
+    - Each question has exactly 4 options
+    - The "correct" field is the index (0-3) of the correct answer
+    - Questions are appropriate difficulty for a fun quiz game
+    - All questions are related to: {theme}
+    """
+    
+    try:
+        response = mistral_client.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        
+        # Parse the JSON response
+        questions_text = response.choices[0].message.content.strip()
+        questions = json.loads(questions_text)
+        
+        # Ensure questions have proper IDs
+        for i, question in enumerate(questions):
+            question["id"] = i + 1
+        
+        return questions
+        
+    except Exception as e:
+        print(f"Error generating questions with Mistral: {e}")
+        # Fallback to default questions if AI fails
+        return random.sample(QUESTIONS, min(num_questions, len(QUESTIONS)))
+
 # Endpoints
 @app.get("/")
 async def root():
     return {"message": "Game API is running!"}
 
 @app.post("/create-session")
-async def create_session():
-    """Create a new game session"""
-    session_id = str(uuid.uuid4())[:8]  # Short ID
+async def create_session(request: CreateSessionRequest = CreateSessionRequest()):
+    """Create a new game session with AI-generated questions"""
+    session_id = str(uuid.uuid4())[:8]  # Short unique ID
+    
+    # Generate questions using Mistral AI
+    questions = await generate_questions_with_mistral(request.theme, num_questions=3)
     
     sessions[session_id] = {
         "users": {},  # user_id -> {"name": str, "score": int}
         "scores": {},  # user_id -> score
         "current_question": 0,
-        "questions": random.sample(QUESTIONS, 3)  # 3 random questions
+        "questions": questions,
+        "theme": request.theme
     }
     
-    return {"session_id": session_id}
+    # Returns unique session_id plus additional info
+    return {
+        "session_id": session_id,
+        "theme": request.theme,
+        "total_questions": len(questions)
+    }
 
 @app.post("/add-user-to-session")
 async def add_user_to_session(request: AddUserRequest):
