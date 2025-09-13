@@ -30,14 +30,12 @@ export function ThemeProvider({
   storageKey = "kahoot-theme",
   ...props
 }: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(defaultTheme)
-
-  useEffect(() => {
+  const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined' && window.localStorage) {
-      const savedTheme = localStorage.getItem(storageKey) as Theme
-      if (savedTheme) setTheme(savedTheme)
+      return (localStorage.getItem(storageKey) as Theme) || defaultTheme
     }
-  }, [])
+    return defaultTheme
+  })
 
   useEffect(() => {
     const root = window.document.documentElement
