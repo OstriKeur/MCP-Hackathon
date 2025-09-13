@@ -1,0 +1,152 @@
+name: Deploy Game API
+
+on:
+  push:
+    branches: [ main, backend-creation ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        uv sync
+    
+    - name: Run tests
+      env:
+        FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GCP_DEPLOYMENT: "false"
+      run: |
+        cd backend
+        # Add test commands here when you have tests
+        echo "Tests would run here"
+        # uv run pytest tests/
+    
+    - name: Lint code
+      run: |
+        cd backend
+        uv run ruff check . || true
+        uv run black --check . || true
+
+  build-and-deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/backend-creation'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+      with:
+        version: "latest"
+    
+    - name: Install dependencies
+      run: |
+        cd backend
+        uv sync
+    
+    - name: Test Firebase Connection
+      env:
+        FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+        GCP_DEPLOYMENT: "false"
+      run: |
+        cd backend
+        python -c "
+        import os
+        import json
+        from game_api import initialize_firestore
+        
+        try:
+            db = initialize_firestore()
+            print('✅ Firebase connection successful')
+        except Exception as e:
+            print(f'❌ Firebase connection failed: {e}')
+            exit(1)
+        "
+    
+    # Docker build and push (uncomment when ready for container deployment)
+    # - name: Set up Docker Buildx
+    #   uses: docker/setup-buildx-action@v3
+    
+    # - name: Login to Docker Hub
+    #   uses: docker/login-action@v3
+    #   with:
+    #     username: ${{ secrets.DOCKER_USERNAME }}
+    #     password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    # - name: Build and push Docker image
+    #   uses: docker/build-push-action@v5
+    #   with:
+    #     context: ./backend
+    #     push: true
+    #     tags: |
+    #       your-dockerhub-username/game-api:latest
+    #       your-dockerhub-username/game-api:${{ github.sha }}
+    #     build-args: |
+    #       FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+    #       MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }}
+
+  # Deploy to Google Cloud Run (uncomment when ready)
+  # deploy-to-gcp:
+  #   needs: build-and-deploy
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   
+  #   - name: Setup Google Cloud CLI
+  #     uses: google-github-actions/setup-gcloud@v1
+  #     with:
+  #       service_account_key: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+  #       project_id: ${{ secrets.GCP_PROJECT_ID }}
+  #   
+  #   - name: Deploy to Cloud Run
+  #     run: |
+  #       gcloud run deploy game-api \
+  #         --image your-dockerhub-username/game-api:${{ github.sha }} \
+  #         --platform managed \
+  #         --region us-central1 \
+  #         --allow-unauthenticated \
+  #         --set-env-vars="FIREBASE_SERVICE_ACCOUNT_KEY=${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }},MISTRAL_API_KEY=${{ secrets.MISTRAL_API_KEY }},GCP_DEPLOYMENT=true"
+
+  # Deploy to Railway (alternative deployment option)
+  # deploy-to-railway:
+  #   needs: build-and-deploy
+  #   runs-on: ubuntu-latest
+  #   if: github.ref == 'refs/heads/main'
+  #   
+  #   steps:
+  #   - uses: actions/checkout@v4
+  #   
+  #   - name: Deploy to Railway
+  #     uses: railway-app/cli@v3
+  #     with:
+  #       command: up
+  #     env:
+  #       RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+  #       FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+  #       MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
