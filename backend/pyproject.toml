@@ -6,5 +6,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "fastapi",
-    "uvicorn[standard]"
+    "uvicorn[standard]",
+    "mistralai",
+    "requests>=2.32.5",
+    "dotenv>=0.9.9",
+    "firebase-admin>=7.1.0",
 ]
