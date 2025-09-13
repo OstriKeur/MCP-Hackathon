@@ -138,3 +138,6 @@ cython_debug/
 .vscode/
 .windsurfrules
 **/CLAUDE.local.md
+
+# Firebase credentials
+cred.json

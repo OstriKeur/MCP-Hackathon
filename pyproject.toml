@@ -9,4 +9,6 @@ keywords = ["mcp", "llm", "alpic", "python"]
 dependencies = [
     "black>=25.1.0",
     "mcp",
+    "firebase-admin>=6.4.0",
+    "python-dotenv>=1.0.0",
 ]
