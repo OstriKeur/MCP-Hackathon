@@ -56,64 +56,64 @@ db = initialize_firestore()
 mcp = FastMCP("Echo Server", port=3000, stateless_http=True, debug=True)
 
 
-# @mcp.tool(
-#     title="Echo Tool",
-#     description="Echo the input text",
-# )
-# def echo(text: str = Field(description="The text to echo")) -> str:
-#     return text
-
-
 @mcp.tool(
-    title="Add User to Session",
-    description="Add a user to a session with their pseudo and score in the database",
+    title="Echo Tool",
+    description="Echo the input text",
 )
-async def add_user(
-    session_id: str = Field(description="The ID of the session to add the user to"),
-    user_pseudo: str = Field(description="The pseudo/username of the user to add")
-) -> str:
-    """Add a user to a session in the database"""
-    try:
-        # Create a reference to the session document
-        session_ref = db.collection('sessions').document(session_id)
+def echo(text: str = Field(description="The text to echo")) -> str:
+    return text
+
+
+# @mcp.tool(
+#     title="Add User to Session",
+#     description="Add a user to a session with their pseudo and score in the database",
+# )
+# async def add_user(
+#     session_id: str = Field(description="The ID of the session to add the user to"),
+#     user_pseudo: str = Field(description="The pseudo/username of the user to add")
+# ) -> str:
+#     """Add a user to a session in the database"""
+#     try:
+#         # Create a reference to the session document
+#         session_ref = db.collection('sessions').document(session_id)
         
-        # Get the current session data
-        session_doc = session_ref.get()
+#         # Get the current session data
+#         session_doc = session_ref.get()
         
-        if session_doc.exists:
-            session_data = session_doc.to_dict()
-        else:
-            # Create new session if it doesn't exist
-            session_data = {
-                'created_at': firestore.SERVER_TIMESTAMP,
-                'users': []
-            }
+#         if session_doc.exists:
+#             session_data = session_doc.to_dict()
+#         else:
+#             # Create new session if it doesn't exist
+#             session_data = {
+#                 'created_at': firestore.SERVER_TIMESTAMP,
+#                 'users': []
+#             }
         
-        # Add the new user to the users list
-        new_user = {
-            'pseudo': user_pseudo,
-            'score': 0,  # Initialize score to 0
-            'added_at': firestore.SERVER_TIMESTAMP
-        }
+#         # Add the new user to the users list
+#         new_user = {
+#             'pseudo': user_pseudo,
+#             'score': 0,  # Initialize score to 0
+#             'added_at': firestore.SERVER_TIMESTAMP
+#         }
         
-        # Check if user already exists in this session
-        users = session_data.get('users', [])
-        existing_user = next((user for user in users if user.get('pseudo') == user_pseudo), None)
+#         # Check if user already exists in this session
+#         users = session_data.get('users', [])
+#         existing_user = next((user for user in users if user.get('pseudo') == user_pseudo), None)
         
-        if existing_user:
-            return f"User '{user_pseudo}' already exists in session '{session_id}' with score {existing_user.get('score', 0)}"
+#         if existing_user:
+#             return f"User '{user_pseudo}' already exists in session '{session_id}' with score {existing_user.get('score', 0)}"
         
-        # Add the new user
-        users.append(new_user)
-        session_data['users'] = users
+#         # Add the new user
+#         users.append(new_user)
+#         session_data['users'] = users
         
-        # Update the session document
-        session_ref.set(session_data, merge=True)
+#         # Update the session document
+#         session_ref.set(session_data, merge=True)
         
-        return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0"
+#         return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0"
         
-    except Exception as e:
-        return f"Error adding user to session: {str(e)}"
+#     except Exception as e:
+#         return f"Error adding user to session: {str(e)}"
 
 
 @mcp.resource(
