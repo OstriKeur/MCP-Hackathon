@@ -122,8 +122,8 @@ def register_tools(mcp: FastMCP, db):
             return f"Error getting next question: {str(e)}"
 
     @mcp.tool(
-        title="Submit Answer",
-        description="Submit an answer for a quiz question and update user score",
+        title="Validate Quiz Answer",
+        description="Use this tool when a user provides an answer to a quiz question - validates the answer, updates score if correct, and shows next question",
     )
     async def submit_answer(
         session_id: str = Field(description="The ID of the quiz session"),
@@ -200,3 +200,15 @@ def register_tools(mcp: FastMCP, db):
             
         except Exception as e:
             return f"Error submitting answer: {str(e)}"
+
+    @mcp.tool(
+        title="Answer Quiz Question",
+        description="When user gives an answer to a quiz question, use this tool to check if it's correct and update their score",
+    )
+    async def answer_quiz_question(
+        session_id: str = Field(description="The ID of the quiz session"),
+        user_pseudo: str = Field(description="The pseudo of the user answering"),
+        answer: str = Field(description="The user's answer to the current question")
+    ) -> str:
+        """Answer a quiz question - use this when user provides an answer"""
+        return await submit_answer(session_id, user_pseudo, answer)
