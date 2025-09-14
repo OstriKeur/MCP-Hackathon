@@ -126,6 +126,18 @@ def register_tools(mcp: FastMCP, db):
             return f"❌ Error getting question: {str(e)}"
 
     @mcp.tool(
+        title="Validate Answer and Continue",
+        description="Validate a user's answer and automatically move to the next question",
+    )
+    async def validate_answer_and_continue(
+        session_id: str = Field(description="The ID of the quiz session"),
+        user_pseudo: str = Field(description="The pseudo of the user"),
+        answer: str = Field(description="The user's answer")
+    ) -> str:
+        """Validate answer and move to next question - use this when user provides an answer"""
+        return await answer_question(session_id, user_pseudo, answer)
+
+    @mcp.tool(
         title="Answer Question",
         description="Submit an answer to the current quiz question and get feedback",
     )
@@ -202,6 +214,42 @@ def register_tools(mcp: FastMCP, db):
             
         except Exception as e:
             return f"❌ Error moving to next question: {str(e)}"
+
+    @mcp.tool(
+        title="Force Next Question",
+        description="Force move to the next question without validating any answer",
+    )
+    async def force_next_question(
+        session_id: str = Field(description="The ID of the quiz session")
+    ) -> str:
+        """Force move to next question - use when quiz is stuck"""
+        try:
+            session_ref = db.collection('quiz_sessions').document(session_id)
+            session_doc = session_ref.get()
+            
+            if not session_doc.exists:
+                return f"❌ Session '{session_id}' not found"
+            
+            session_data = session_doc.to_dict()
+            questions = session_data.get('questions', [])
+            current_question_index = session_data.get('current_question', 0)
+            
+            # Force advance to next question
+            next_question_index = current_question_index + 1
+            
+            if next_question_index >= len(questions):
+                return "🎉 Quiz finished! No more questions available."
+            
+            # Update current question index
+            session_data['current_question'] = next_question_index
+            session_ref.set(session_data, merge=True)
+            
+            # Get next question
+            next_question = questions[next_question_index]
+            return f"⏭️ Forced to next question:\n\n{_format_question_display(next_question, next_question_index + 1, len(questions))}"
+            
+        except Exception as e:
+            return f"❌ Error forcing next question: {str(e)}"
 
     # =============================================================================
     # DEBUG AND UTILITY TOOLS
