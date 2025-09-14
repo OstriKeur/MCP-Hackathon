@@ -203,8 +203,17 @@ def register_tools(mcp: FastMCP, db):
             current_question = questions[current_question_index]
             correct_answer = current_question.get('correct_answer', '')
             
-            # Check if the answer is correct
-            is_correct = answer.lower().strip() == correct_answer.lower().strip()
+            # Check if the answer is correct (more flexible comparison)
+            # Remove HTML tags, extra spaces, and normalize text
+            import re
+            clean_answer = re.sub(r'<[^>]+>', '', answer).lower().strip()
+            clean_correct = re.sub(r'<[^>]+>', '', correct_answer).lower().strip()
+            
+            # Also check if the answer matches any of the options (in case user types the full option)
+            options = current_question.get('options', [])
+            option_match = any(clean_answer == re.sub(r'<[^>]+>', '', opt).lower().strip() for opt in options)
+            
+            is_correct = (clean_answer == clean_correct) or option_match
             
             # Update user score if correct
             if is_correct:
@@ -285,3 +294,43 @@ def register_tools(mcp: FastMCP, db):
             
         except Exception as e:
             return f"Error updating user score: {str(e)}"
+
+    @mcp.tool(
+        title="Debug Current Question",
+        description="Get detailed information about the current question including the correct answer",
+    )
+    async def debug_current_question(
+        session_id: str = Field(description="The ID of the quiz session")
+    ) -> str:
+        """Debug the current question to see exact data"""
+        try:
+            # Get the session data
+            session_ref = db.collection('quiz_sessions').document(session_id)
+            session_doc = session_ref.get()
+            
+            if not session_doc.exists:
+                return f"Session '{session_id}' not found"
+            
+            session_data = session_doc.to_dict()
+            questions = session_data.get('questions', [])
+            current_question_index = session_data.get('current_question', 0)
+            
+            if current_question_index >= len(questions):
+                return "No more questions available in this quiz"
+            
+            current_question = questions[current_question_index]
+            
+            debug_info = {
+                "question_number": current_question_index + 1,
+                "total_questions": len(questions),
+                "question_text": current_question.get('question'),
+                "options": current_question.get('options', []),
+                "correct_answer": current_question.get('correct_answer'),
+                "question_id": current_question.get('id'),
+                "full_question_data": current_question
+            }
+            
+            return f"Debug info for current question:\n{json.dumps(debug_info, indent=2, ensure_ascii=False)}"
+            
+        except Exception as e:
+            return f"Error debugging current question: {str(e)}"
