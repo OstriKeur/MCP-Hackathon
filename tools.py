@@ -68,13 +68,13 @@ def register_tools(mcp: FastMCP, db):
             return f"Error adding user to session: {str(e)}"
 
     @mcp.tool(
-        title="Get Current Question",
-        description="Get the current question for a quiz session without advancing",
+        title="Get Quiz Question",
+        description="Get the next question for a quiz session",
     )
-    async def get_current_question(
+    async def get_next_question(
         session_id: str = Field(description="The ID of the quiz session")
     ) -> str:
-        """Get the current question from the quiz session without advancing"""
+        """Get the next question from the quiz session"""
         try:
             # Récupérer la session depuis Firestore
             session_ref = db.collection('quiz_sessions').document(session_id)
@@ -106,37 +106,4 @@ def register_tools(mcp: FastMCP, db):
             return json.dumps(question_data, indent=2)
             
         except Exception as e:
-            return f"Error getting current question: {str(e)}"
-
-    @mcp.tool(
-        title="Advance to Next Question",
-        description="Advance to the next question in a quiz session",
-    )
-    async def advance_to_next_question(
-        session_id: str = Field(description="The ID of the quiz session")
-    ) -> str:
-        """Advance to the next question in the quiz session"""
-        try:
-            # Récupérer la session depuis Firestore
-            session_ref = db.collection('quiz_sessions').document(session_id)
-            session_doc = session_ref.get()
-            
-            if not session_doc.exists:
-                return f"Session '{session_id}' not found"
-            
-            session_data = session_doc.to_dict()
-            questions = session_data.get('questions', [])
-            current_question_index = session_data.get('current_question', 0)
-            
-            # Vérifier s'il y a encore des questions
-            if current_question_index >= len(questions):
-                return "Quiz finished - no more questions available"
-            
-            # Avancer à la question suivante
-            next_question_index = current_question_index + 1
-            session_ref.update({'current_question': next_question_index})
-            
-            return f"Advanced to question {next_question_index + 1} of {len(questions)}"
-            
-        except Exception as e:
-            return f"Error advancing to next question: {str(e)}"
+            return f"Error getting next question: {str(e)}"
