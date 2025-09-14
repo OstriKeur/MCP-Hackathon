@@ -69,12 +69,12 @@ def register_tools(mcp: FastMCP, db):
 
     @mcp.tool(
         title="Get Quiz Question",
-        description="Get the next question for a quiz session and advance to the next question",
+        description="Get the next question for a quiz session",
     )
     async def get_quiz_question(
         session_id: str = Field(description="The ID of the quiz session")
     ) -> str:
-        """Get the next question from the quiz session and advance the question index"""
+        """Get the next question from the quiz session"""
         try:
             # Récupérer la session depuis Firestore
             session_ref = db.collection('quiz_sessions').document(session_id)
@@ -102,10 +102,6 @@ def register_tools(mcp: FastMCP, db):
                 "question_number": current_question_index + 1,
                 "total_questions": len(questions)
             }
-            
-            # Avancer à la question suivante
-            next_question_index = current_question_index + 1
-            session_ref.update({'current_question': next_question_index})
             
             return json.dumps(question_data, indent=2)
             
