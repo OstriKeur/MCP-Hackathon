@@ -73,7 +73,7 @@ def register_tools(mcp: FastMCP, db):
     )
     async def get_next_question(
         session_id: str = Field(description="The ID of the quiz session"),
-        current_question_id: int = Field(description="The index of the current question")
+        current_question_id: int = Field(description="The index of the current question", default=0)
     ) -> str:
         """Get the next question from the quiz session"""
         try:
@@ -109,3 +109,5 @@ def register_tools(mcp: FastMCP, db):
             
         except Exception as e:
             return f"Error getting next question: {str(e)}"
+
+    
