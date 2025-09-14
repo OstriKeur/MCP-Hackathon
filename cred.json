@@ -1,0 +1,13 @@
+// {
+//   "type": "service_account",
+//   "project_id": "mcp-hackathon-56fcd",
+//   "private_key_id": "7da961b9213666c1ab1170032a5be45734820955",
+//   "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEuwIBADANBgkqhkiG9w0BAQEFAASCBKUwggShAgEAAoIBAQDEwZdI/TO7fUtW\nltu46kyxfT/EtYJIUedtQxBx7hG2QZO58GC7bRlxcZDGHprOMr2bEySZjUwfC30g\nVV2mgOfZCJ74+jmUCq3G/VNjUpn/BIM+31BiaRj9/Up43ETSmWYvy60kkagcFYBT\nFEflltNaUtZCOlrG901F941KGaWB44WfzFeOFELDXOQ3B7ISKANo9oRaXLeEMPoE\nRDzOnqeB60P4w0+cV5yVc0zuQEhFGKg6Nt8Oe8xmcHVrCY820kMNR4VTRI2r6PI1\nsOW+R1euzAU81HLFBRVb4+vu07wp+6ZZG5zZlWd02rvY0iuMa773FwGC5tIQsiRa\nZaF+Teg5AgMBAAECgf9XjIFx0zje4Y7KAEd5Ym2916qt82FYJxmtfQRFNTi7b3KQ\nFV5A2p2sXOOdnuJ/g4zp1c963j7qRirnMLqgzQZdKnFWKvJVx7X0+vD6SJJMdkSk\n2uZp1KVRyHmeigpR56TFVGrcPKh6bTTwOzuki2GtXkzaK0pIXGfgST9CdduvYFVh\nvXzZ94HcI6G3U6MSJ4jP3yVpaE6pAkS1xrge8lpE0H9yNnVG7LvSelx4TD4HU5+S\n35QQghAFztNS+WzBDoMrzOqgwLPVXwYt34YNQ4GTppdPiyDEI8sb8bl7RAvCjUUT\nHG+8RAejBPtWYSnlBkFUs3/KIlaWdLgP6L9D+zMCgYEA4H5gHOHWUl1rz+NCFiyB\nMRXI31X10MCkVwnXagCqBD2JJXBMjy8WI7CWLX8s7oYZLr6bi3+xEHRw5RZDXeC0\nxl5cHfqbrELVxF74gCZyeEE6/NuW/pxVou1KaodR4Z0n9TRZeYuB6Dbk0r82IhKj\naE8EH3wqN3wIqLiMgKEuXNMCgYEA4F6pqejCH5XdVbGG8nO0IpP3vHCu6172wNNT\nmbpqBbuDoH4CgESanXyMEgAzhsCxmW8fHaD5HT1Pr6Er40oPiUJHBI6+nIpKB8jw\nMOICaqjmpmBG2GVKclXOsSmHRzl0glNtX92mkLZ61TIMEmC0gLCh590gICFR37sj\n6v9Pz0MCgYEAuyY/o/RVwsZk+aMAVhH2BeCeXCmCSuw+VN08ev9gvTY7nj13Zaqg\nb1JocDdkUtjyJ3j5nRrvlsMr1p9vu9R3gCPr8YYZv0rcgN+XlOX4ae4faer6fvn/\nnlrpvdNf3JEyXYWtzdkSjG8u5c5IJ7GYDn5I9qKBY04Avf9UCmvUhccCgYAre40M\nBbThZCzh96a8hBnr/ZssZPYxXVUa55mzGEKF2+JVjzYy35jLXqDSuEFEI0IIB1YT\nauf8d65izixwPyElq7eRtYxRUCeqvJF4F8T6IMOaiNwSAgdcgy6sfOzfq83dmAeB\nZbZrI0JI4Qsf4Kf6rMCj6+HW+D4iyuTaHSK9ewKBgCVsydaKR3IXpRuUhBTcVNNy\ndjwW/5GLqK1DtrLLKPNE0DTr+w3/7pgBUGYH+BC6zgtQuoyatfKMN07xmdksuLkK\nI6im3EWnPtfdsVkq6Rq+K8285l97Ko5aes9BY+3yOUoP5e3jU34u5t9SRE9c/F3B\nosnuaywMxtVluaatYQ3a\n-----END PRIVATE KEY-----\n",
+//   "client_email": "firebase-adminsdk-fbsvc@mcp-hackathon-56fcd.iam.gserviceaccount.com",
+//   "client_id": "110326622839399099647",
+//   "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+//   "token_uri": "https://oauth2.googleapis.com/token",
+//   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+//   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40mcp-hackathon-56fcd.iam.gserviceaccount.com",
+//   "universe_domain": "googleapis.com"
+// }
