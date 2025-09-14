@@ -22,7 +22,7 @@ import requests
 import json
 import time
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://mcp-hackathon-291854097819.europe-west1.run.app/"#"http://localhost:8000"
 
 def test_single_game(theme="general knowledge"):
     """Test a single game session with a specific theme"""
