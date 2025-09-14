@@ -72,7 +72,8 @@ def register_tools(mcp: FastMCP, db):
         description="Get the next question for a quiz session",
     )
     async def get_next_question(
-        session_id: str = Field(description="The ID of the quiz session")
+        session_id: str = Field(description="The ID of the quiz session"),
+        current_question_id: int = Field(description="The index of the current question")
     ) -> str:
         """Get the next question from the quiz session"""
         try:
@@ -86,20 +87,21 @@ def register_tools(mcp: FastMCP, db):
             session_data = session_doc.to_dict()
             questions = session_data.get('questions', [])
             current_question_index = session_data.get('current_question', 0)
+            next_question_index = current_question_id + 1
             
             # Vérifier s'il y a encore des questions
-            if current_question_index >= len(questions):
+            if next_question_index >= len(questions):
                 return "Quiz finished - no more questions available"
             
             # Récupérer la question courante
-            current_question = questions[current_question_index]
+            next_question = questions[next_question_index]
             
             # Formater la réponse (sans la bonne réponse)
             question_data = {
-                "question_id": current_question.get('id'),
-                "question_text": current_question.get('question'),
-                "options": current_question.get('options', []),
-                "question_number": current_question_index + 1,
+                "question_id": next_question_index,
+                "question_text": next_question.get('question'),
+                "options": next_question.get('options', []),
+                "question_number": next_question_index + 1,
                 "total_questions": len(questions)
             }
             
