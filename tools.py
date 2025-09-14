@@ -22,7 +22,7 @@ def register_tools(mcp: FastMCP, db):
         """Add a user to a session in the database"""
         try:
             # Create a reference to the session document
-            session_ref = db.collection('sessions').document(session_id)
+            session_ref = db.collection('quiz_sessions').document(session_id)
             
             # Get the current session data
             session_doc = session_ref.get()
@@ -62,7 +62,20 @@ def register_tools(mcp: FastMCP, db):
                 # For existing sessions, just merge
                 session_ref.set(session_data, merge=True)
             
-            return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0"
+            # Automatically get the first question after adding user
+            try:
+                questions = session_data.get('questions', [])
+                current_question_index = session_data.get('current_question', 0)
+                
+                if current_question_index < len(questions):
+                    current_question = questions[current_question_index]
+                    question_display = f"Question {current_question_index + 1}/{len(questions)}:\n{current_question.get('question')}\n\nOptions:\n" + "\n".join([f"- {option}" for option in current_question.get('options', [])])
+                    
+                    return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0. Quiz started automatically!\n\n{question_display}"
+                else:
+                    return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0. Quiz is already finished."
+            except Exception as e:
+                return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0. Error getting first question: {str(e)}"
             
         except Exception as e:
             return f"Error adding user to session: {str(e)}"
@@ -107,3 +120,83 @@ def register_tools(mcp: FastMCP, db):
             
         except Exception as e:
             return f"Error getting next question: {str(e)}"
+
+    @mcp.tool(
+        title="Submit Answer",
+        description="Submit an answer for a quiz question and update user score",
+    )
+    async def submit_answer(
+        session_id: str = Field(description="The ID of the quiz session"),
+        user_pseudo: str = Field(description="The pseudo of the user submitting the answer"),
+        answer: str = Field(description="The answer submitted by the user")
+    ) -> str:
+        """Submit an answer for a quiz question"""
+        try:
+            # Get the session data
+            session_ref = db.collection('quiz_sessions').document(session_id)
+            session_doc = session_ref.get()
+            
+            if not session_doc.exists:
+                return f"Session '{session_id}' not found"
+            
+            session_data = session_doc.to_dict()
+            questions = session_data.get('questions', [])
+            current_question_index = session_data.get('current_question', 0)
+            
+            # Check if there are questions available
+            if current_question_index >= len(questions):
+                return "No more questions available in this quiz"
+            
+            # Get the current question
+            current_question = questions[current_question_index]
+            correct_answer = current_question.get('correct_answer', '')
+            
+            # Check if the answer is correct (more flexible comparison)
+            import re
+            clean_answer = re.sub(r'<[^>]+>', '', answer).lower().strip()
+            clean_correct = re.sub(r'<[^>]+>', '', correct_answer).lower().strip()
+            
+            # Also check if the answer matches any of the options
+            options = current_question.get('options', [])
+            option_match = any(clean_answer == re.sub(r'<[^>]+>', '', opt).lower().strip() for opt in options)
+            
+            is_correct = (clean_answer == clean_correct) or option_match
+            
+            # Update user score if correct
+            if is_correct:
+                users = session_data.get('users', [])
+                user_found = False
+                
+                for user in users:
+                    if user.get('pseudo') == user_pseudo:
+                        user['score'] = user.get('score', 0) + 1
+                        user_found = True
+                        break
+                
+                if not user_found:
+                    return f"User '{user_pseudo}' not found in session '{session_id}'"
+                
+                # Update the session data
+                session_data['users'] = users
+                session_ref.set(session_data, merge=True)
+            
+            # Move to next question
+            session_data['current_question'] = current_question_index + 1
+            session_ref.set(session_data, merge=True)
+            
+            # Get next question if available
+            next_question_index = current_question_index + 1
+            if next_question_index < len(questions):
+                next_question = questions[next_question_index]
+                next_question_text = f"\n\nNext Question {next_question_index + 1}/{len(questions)}:\n{next_question.get('question')}\n\nOptions:\n" + "\n".join([f"- {option}" for option in next_question.get('options', [])])
+            else:
+                next_question_text = "\n\n🎉 Quiz finished! No more questions."
+            
+            # Return result with next question
+            if is_correct:
+                return f"✅ Correct answer! User '{user_pseudo}' score updated (+1 point).{next_question_text}"
+            else:
+                return f"❌ Incorrect answer. The correct answer was '{correct_answer}'.{next_question_text}"
+            
+        except Exception as e:
+            return f"Error submitting answer: {str(e)}"
