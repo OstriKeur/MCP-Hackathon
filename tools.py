@@ -69,12 +69,12 @@ def register_tools(mcp: FastMCP, db):
 
     @mcp.tool(
         title="Get Quiz Question",
-        description="Get the current question for a quiz session (without advancing)",
+        description="Get the next question for a quiz session and advance to the next question",
     )
     async def get_quiz_question(
         session_id: str = Field(description="The ID of the quiz session")
     ) -> str:
-        """Get the current question from the quiz session (without advancing)"""
+        """Get the next question from the quiz session and advance the question index"""
         try:
             # Récupérer la session depuis Firestore
             session_ref = db.collection('quiz_sessions').document(session_id)
@@ -103,97 +103,11 @@ def register_tools(mcp: FastMCP, db):
                 "total_questions": len(questions)
             }
             
+            # Avancer à la question suivante
+            next_question_index = current_question_index + 1
+            session_ref.update({'current_question': next_question_index})
+            
             return json.dumps(question_data, indent=2)
             
         except Exception as e:
             return f"Error getting next question: {str(e)}"
-
-    @mcp.tool(
-        title="Reset Quiz Session",
-        description="Reset a quiz session to start from the first question",
-    )
-    async def reset_quiz_session(
-        session_id: str = Field(description="The ID of the quiz session to reset")
-    ) -> str:
-        """Reset a quiz session to start from the first question"""
-        try:
-            # Récupérer la session depuis Firestore
-            session_ref = db.collection('quiz_sessions').document(session_id)
-            session_doc = session_ref.get()
-            
-            if not session_doc.exists:
-                return f"Session '{session_id}' not found"
-            
-            # Reset current_question to 0
-            session_ref.update({'current_question': 0})
-            
-            return f"Quiz session '{session_id}' has been reset to the first question"
-            
-        except Exception as e:
-            return f"Error resetting quiz session: {str(e)}"
-
-    @mcp.tool(
-        title="Submit Quiz Answer",
-        description="Submit an answer to the current quiz question and get explanation",
-    )
-    async def submit_quiz_answer(
-        session_id: str = Field(description="The ID of the quiz session"),
-        answer: int = Field(description="The answer number (1, 2, 3, or 4)")
-    ) -> str:
-        """Submit an answer to the current quiz question and get explanation"""
-        try:
-            # Récupérer la session depuis Firestore
-            session_ref = db.collection('quiz_sessions').document(session_id)
-            session_doc = session_ref.get()
-            
-            if not session_doc.exists:
-                return f"Session '{session_id}' not found"
-            
-            session_data = session_doc.to_dict()
-            questions = session_data.get('questions', [])
-            current_question_index = session_data.get('current_question', 0)
-            
-            # Vérifier s'il y a encore des questions
-            if current_question_index >= len(questions):
-                return "Quiz finished - no more questions available"
-            
-            # Récupérer la question courante
-            current_question = questions[current_question_index]
-            correct_answer = current_question.get('correct_answer', 1)
-            explanation = current_question.get('explanation', 'No explanation available')
-            
-            # Vérifier la réponse
-            is_correct = (answer == correct_answer)
-            
-            # Formater la réponse
-            result = {
-                "is_correct": is_correct,
-                "correct_answer": correct_answer,
-                "user_answer": answer,
-                "explanation": explanation,
-                "question_text": current_question.get('question'),
-                "question_number": current_question_index + 1,
-                "total_questions": len(questions)
-            }
-            
-            # Avancer à la question suivante automatiquement
-            next_question_index = current_question_index + 1
-            session_ref.update({'current_question': next_question_index})
-            
-            # Construire le message de réponse
-            if is_correct:
-                response_message = f"✅ Correct ! La réponse était bien la {correct_answer}.\n\n"
-            else:
-                response_message = f"❌ Dommage ! La réponse correcte était la {correct_answer}.\n\n"
-                response_message += f"💡 Explication : {explanation}\n\n"
-            
-            # Vérifier s'il y a encore des questions
-            if next_question_index >= len(questions):
-                response_message += "🎉 Quiz terminé ! Plus de questions disponibles."
-            else:
-                response_message += f"➡️ Passage automatique à la question suivante ({next_question_index + 1}/{len(questions)})."
-            
-            return response_message
-            
-        except Exception as e:
-            return f"Error submitting answer: {str(e)}"
