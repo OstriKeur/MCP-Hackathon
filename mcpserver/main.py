@@ -3,25 +3,33 @@ MCP Server Template
 """
 
 import dotenv
-import firebase_admin
 import os
 import json
-from firebase_admin import credentials, firestore
-from firebase_admin.firestore import DocumentReference
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 import mcp.types as types
-from tools import register_tools
 
-def initialize_firestore():
+# Global variable to store the database client
+_db = None
+
+def get_firestore_client():
     """
-    Initialize Firestore based on the platform.
+    Lazy-load Firestore client to improve cold start performance.
     """
+    global _db
+    if _db is not None:
+        return _db
+        
+    # Import Firebase modules only when needed
+    import firebase_admin
+    from firebase_admin import credentials, firestore
+    
     # Check if default app already exists
     try:
         firebase_admin.get_app()
-        return firestore.client()  # App already exists, just return client
+        _db = firestore.client()  # App already exists, just return client
+        return _db
     except ValueError:
         # App doesn't exist, initialize it
         pass
@@ -49,14 +57,16 @@ def initialize_firestore():
             except FileNotFoundError:
                 raise ValueError("Neither FIREBASE_SERVICE_ACCOUNT_KEY environment variable nor cred.json file found.")
     
-    return firestore.client()
-
-db = initialize_firestore()
+    _db = firestore.client()
+    return _db
 
 mcp = FastMCP("Echo Server", port=3000, stateless_http=True, debug=True)
 
-# Register all tools
-register_tools(mcp, db)
+# Import tools registration
+from tools import register_tools
+
+# Register all tools with lazy DB initialization
+register_tools(mcp, get_firestore_client)
 
 @mcp.resource(
     uri="greeting://{name}",
@@ -82,6 +92,19 @@ def greet_user(
     }
 
     return f"{styles.get(style, styles['friendly'])} for someone named {name}."
+
+
+@mcp.tool(
+    title="Health Check",
+    description="Quick health check that responds immediately without initializing heavy dependencies",
+)
+async def health_check() -> str:
+    """Health check endpoint for fast Lambda response"""
+    return json.dumps({
+        "status": "healthy",
+        "timestamp": json.dumps({"$timestamp": "server"}),
+        "service": "mcp-server"
+    })
 
 
 if __name__ == "__main__":

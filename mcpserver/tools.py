@@ -3,13 +3,12 @@ MCP Tools for Session Management and Quiz
 """
 
 import json
-from firebase_admin import firestore
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 
-def register_tools(mcp: FastMCP, db):
-    """Register all MCP tools"""
+def register_tools(mcp: FastMCP, db_getter):
+    """Register all MCP tools with lazy database loading"""
     
     @mcp.tool(
         title="Add User to Session",
@@ -21,6 +20,8 @@ def register_tools(mcp: FastMCP, db):
     ) -> str:
         """Add a user to a session in the database"""
         try:
+            # Get database client lazily
+            db = db_getter()
             # Create a reference to the session document
             session_ref = db.collection('quiz_sessions').document(session_id)
             
@@ -56,6 +57,7 @@ def register_tools(mcp: FastMCP, db):
             # Update the session document
             if not session_doc.exists:
                 # For new sessions, use update with timestamp
+                from firebase_admin import firestore
                 session_ref.set(session_data)
                 session_ref.update({'created_at': firestore.SERVER_TIMESTAMP})
             else:
@@ -76,6 +78,8 @@ def register_tools(mcp: FastMCP, db):
     ) -> str:
         """Get the next question from the quiz session"""
         try:
+            # Get database client lazily
+            db = db_getter()
             # Récupérer la session depuis Firestore
             session_ref = db.collection('quiz_sessions').document(session_id)
             session_doc = session_ref.get()
