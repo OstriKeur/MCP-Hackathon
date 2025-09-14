@@ -10,4 +10,26 @@ __pycache__/
 
 # uv
 .python-version
-uv.lock
+uv.lock# dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# testing
+coverage
+
+# production
+.next/
+out/
+
+# misc
+.DS_Store
+*.log
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# credentials
+cred.json
+credentials.json

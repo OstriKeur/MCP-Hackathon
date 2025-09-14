@@ -14,6 +14,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    env_file:
+      - .env
 
   # Optional: Add a simple nginx reverse proxy for production
   # nginx:
