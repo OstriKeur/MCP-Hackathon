@@ -56,8 +56,6 @@ db = initialize_firestore()
 mcp = FastMCP("Echo Server", port=3000, stateless_http=True, debug=True)
 
 
-
-
 @mcp.tool(
     title="Add User to Session",
     description="Add a user to a session with their pseudo and score in the database",
@@ -114,6 +112,47 @@ async def add_user(
     except Exception as e:
         return f"Error adding user to session: {str(e)}"
 
+
+@mcp.tool(
+    title="Next Question",
+    description="Get the next question for a quiz session",
+)
+async def next_question(
+    session_id: str = Field(description="The ID of the quiz session")
+) -> str:
+    """Get the next question from the quiz session"""
+    try:
+        # Récupérer la session depuis Firestore
+        session_ref = db.collection('quiz_sessions').document(session_id)
+        session_doc = session_ref.get()
+        
+        if not session_doc.exists:
+            return f"Session '{session_id}' not found"
+        
+        session_data = session_doc.to_dict()
+        questions = session_data.get('questions', [])
+        current_question_index = session_data.get('current_question', 0)
+        
+        # Vérifier s'il y a encore des questions
+        if current_question_index >= len(questions):
+            return "Quiz finished - no more questions available"
+        
+        # Récupérer la question courante
+        current_question = questions[current_question_index]
+        
+        # Formater la réponse (sans la bonne réponse)
+        question_data = {
+            "question_id": current_question.get('id'),
+            "question_text": current_question.get('question'),
+            "options": current_question.get('options', []),
+            "question_number": current_question_index + 1,
+            "total_questions": len(questions)
+        }
+        
+        return json.dumps(question_data, indent=2)
+        
+    except Exception as e:
+        return f"Error getting next question: {str(e)}"
 
 @mcp.resource(
     uri="greeting://{name}",
