@@ -28,7 +28,7 @@ def initialize_firestore():
         # App doesn't exist, initialize it
         pass
     
-    if os.environ.get("GCP_DEPLOYMENT", "false").lower() == "true":
+    if os.environ.get("GCP_DEPLOYMENT", "true").lower() == "true":
         # Initialize Firestore for GCP
         firebase_admin.initialize_app()
     else:

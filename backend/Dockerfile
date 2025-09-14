@@ -16,12 +16,13 @@ RUN uv sync --frozen
 # Copy application code
 COPY game_api.py .
 
-# Expose port 8000
-EXPOSE 8000
+# Set default port (Cloud Run will override this with PORT env var)
+ENV PORT=8000
+EXPOSE $PORT
 
-# Health check
+# Health check using PORT environment variable
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD curl -f http://localhost:$PORT/ || exit 1
 
-# Run the application
-CMD ["uv", "run", "uvicorn", "game_api:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run the application using PORT environment variable
+CMD ["sh", "-c", "uv run uvicorn game_api:app --host 0.0.0.0 --port $PORT"]
