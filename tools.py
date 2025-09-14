@@ -69,12 +69,12 @@ def register_tools(mcp: FastMCP, db):
 
     @mcp.tool(
         title="Get Quiz Question",
-        description="Get the next question for a quiz session",
+        description="Get the next question for a quiz session and advance to the next question",
     )
     async def get_quiz_question(
         session_id: str = Field(description="The ID of the quiz session")
     ) -> str:
-        """Get the next question from the quiz session"""
+        """Get the next question from the quiz session and advance the question index"""
         try:
             # Récupérer la session depuis Firestore
             session_ref = db.collection('quiz_sessions').document(session_id)
@@ -103,7 +103,35 @@ def register_tools(mcp: FastMCP, db):
                 "total_questions": len(questions)
             }
             
+            # Avancer à la question suivante
+            next_question_index = current_question_index + 1
+            session_ref.update({'current_question': next_question_index})
+            
             return json.dumps(question_data, indent=2)
             
         except Exception as e:
             return f"Error getting next question: {str(e)}"
+
+    @mcp.tool(
+        title="Reset Quiz Session",
+        description="Reset a quiz session to start from the first question",
+    )
+    async def reset_quiz_session(
+        session_id: str = Field(description="The ID of the quiz session to reset")
+    ) -> str:
+        """Reset a quiz session to start from the first question"""
+        try:
+            # Récupérer la session depuis Firestore
+            session_ref = db.collection('quiz_sessions').document(session_id)
+            session_doc = session_ref.get()
+            
+            if not session_doc.exists:
+                return f"Session '{session_id}' not found"
+            
+            # Reset current_question to 0
+            session_ref.update({'current_question': 0})
+            
+            return f"Quiz session '{session_id}' has been reset to the first question"
+            
+        except Exception as e:
+            return f"Error resetting quiz session: {str(e)}"
