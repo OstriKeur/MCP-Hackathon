@@ -15,7 +15,6 @@ RUN uv sync --frozen
 
 # Copy application code
 COPY game_api.py .
-COPY cred.json /app/cred.json
 
 # Expose port 8000
 EXPOSE 8000
