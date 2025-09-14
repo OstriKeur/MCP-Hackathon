@@ -77,8 +77,7 @@ async def add_user(
         
         # Initialize session_data with default values
         session_data = {
-            'users': [],
-            'created_at': firestore.SERVER_TIMESTAMP
+            'users': []
         }
         
         if session_doc.exists:
@@ -87,8 +86,7 @@ async def add_user(
         # Add the new user to the users list
         new_user = {
             'pseudo': user_pseudo,
-            'score': 0,  # Initialize score to 0
-            'added_at': firestore.SERVER_TIMESTAMP
+            'score': 0  # Initialize score to 0
         }
         
         # Check if user already exists in this session
@@ -103,6 +101,9 @@ async def add_user(
         session_data['users'] = users
         
         # Update the session document
+        if not session_doc.exists:
+            # For new sessions, add created_at timestamp
+            session_data['created_at'] = firestore.SERVER_TIMESTAMP
         session_ref.set(session_data, merge=True)
         
         return f"Successfully added user '{user_pseudo}' to session '{session_id}' with initial score 0"
