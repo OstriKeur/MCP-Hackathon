@@ -20,7 +20,7 @@ def initialize_firestore():
     """
     Initialize Firestore based on the platform.
     """
-        # Check if default app already exists
+    # Check if default app already exists
     try:
         firebase_admin.get_app()
         return firestore.client()  # App already exists, just return client
@@ -32,9 +32,24 @@ def initialize_firestore():
         # Initialize Firestore for GCP
         firebase_admin.initialize_app()
     else:
-        # Initialize Firestore for other platforms
-        cred = credentials.Certificate("cred.json")
-        firebase_admin.initialize_app(cred)
+        # Try to use environment variable first (for GitHub secrets)
+        service_account_json_str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+        if service_account_json_str:
+            try:
+                cred_json = json.loads(service_account_json_str)
+                cred = credentials.Certificate(cred_json)
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin SDK initialized successfully using environment variable.")
+            except json.JSONDecodeError:
+                raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY contains invalid JSON.")
+        else:
+            # Fallback to local file for development
+            try:
+                cred = credentials.Certificate("cred.json")
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin SDK initialized using local cred.json file.")
+            except FileNotFoundError:
+                raise ValueError("Neither FIREBASE_SERVICE_ACCOUNT_KEY environment variable nor cred.json file found.")
     
     return firestore.client()
 
