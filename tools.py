@@ -68,13 +68,13 @@ def register_tools(mcp: FastMCP, db):
             return f"Error adding user to session: {str(e)}"
 
     @mcp.tool(
-        title="Next Question",
-        description="Move to the next question in the quiz session and return it",
+        title="Get Quiz Question",
+        description="Get the next question for a quiz session",
     )
-    async def next_question(
+    async def get_quiz_question(
         session_id: str = Field(description="The ID of the quiz session")
     ) -> str:
-        """Move to the next question and return it"""
+        """Get the next question from the quiz session"""
         try:
             # Récupérer la session depuis Firestore
             session_ref = db.collection('quiz_sessions').document(session_id)
@@ -87,29 +87,23 @@ def register_tools(mcp: FastMCP, db):
             questions = session_data.get('questions', [])
             current_question_index = session_data.get('current_question', 0)
             
-            # Passer à la question suivante
-            next_question_index = current_question_index + 1
-            
             # Vérifier s'il y a encore des questions
-            if next_question_index >= len(questions):
+            if current_question_index >= len(questions):
                 return "Quiz finished - no more questions available"
             
-            # Mettre à jour l'index de la question courante dans la base
-            session_ref.update({'current_question': next_question_index})
-            
-            # Récupérer la nouvelle question courante
-            current_question = questions[next_question_index]
+            # Récupérer la question courante
+            current_question = questions[current_question_index]
             
             # Formater la réponse (sans la bonne réponse)
             question_data = {
                 "question_id": current_question.get('id'),
                 "question_text": current_question.get('question'),
                 "options": current_question.get('options', []),
-                "question_number": next_question_index + 1,
+                "question_number": current_question_index + 1,
                 "total_questions": len(questions)
             }
             
             return json.dumps(question_data, indent=2)
             
         except Exception as e:
-            return f"Error moving to next question: {str(e)}"
+            return f"Error getting next question: {str(e)}"
