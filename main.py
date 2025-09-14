@@ -73,6 +73,13 @@ async def add_user(
         
         # Get the current session data
         session_doc = session_ref.get()
+        print(session_doc)
+        
+        # Initialize session_data with default values
+        session_data = {
+            'users': [],
+            'created_at': firestore.SERVER_TIMESTAMP
+        }
         
         if session_doc.exists:
             session_data = session_doc.to_dict()
