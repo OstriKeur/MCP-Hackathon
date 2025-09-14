@@ -22,7 +22,7 @@ def register_tools(mcp: FastMCP, db):
         """Add a user to a session in the database"""
         try:
             # Create a reference to the session document
-            session_ref = db.collection('sessions').document(session_id)
+            session_ref = db.collection('quiz_sessions').document(session_id)
             
             # Get the current session data
             session_doc = session_ref.get()
@@ -107,3 +107,49 @@ def register_tools(mcp: FastMCP, db):
             
         except Exception as e:
             return f"Error getting next question: {str(e)}"
+
+    @mcp.tool(
+        title="Check Session Data",
+        description="Check the data in a specific session to debug database issues",
+    )
+    async def check_session_data(
+        session_id: str = Field(description="The ID of the session to check")
+    ) -> str:
+        """Check the data in a specific session"""
+        try:
+            # Check in quiz_sessions collection
+            session_ref = db.collection('quiz_sessions').document(session_id)
+            session_doc = session_ref.get()
+            
+            if not session_doc.exists:
+                return f"Session '{session_id}' not found in quiz_sessions collection"
+            
+            session_data = session_doc.to_dict()
+            return f"Session '{session_id}' data: {json.dumps(session_data, indent=2, default=str)}"
+            
+        except Exception as e:
+            return f"Error checking session data: {str(e)}"
+
+    @mcp.tool(
+        title="List All Sessions",
+        description="List all sessions in the database to see what exists",
+    )
+    async def list_all_sessions() -> str:
+        """List all sessions in the database"""
+        try:
+            # List all sessions in quiz_sessions collection
+            sessions_ref = db.collection('quiz_sessions')
+            docs = sessions_ref.stream()
+            
+            sessions = []
+            for doc in docs:
+                session_data = doc.to_dict()
+                sessions.append({
+                    'id': doc.id,
+                    'data': session_data
+                })
+            
+            return f"All sessions in quiz_sessions: {json.dumps(sessions, indent=2, default=str)}"
+            
+        except Exception as e:
+            return f"Error listing sessions: {str(e)}"
