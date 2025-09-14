@@ -76,12 +76,6 @@ async def add_user(
         
         if session_doc.exists:
             session_data = session_doc.to_dict()
-        else:
-            # Create new session if it doesn't exist
-            session_data = {
-                'created_at': firestore.SERVER_TIMESTAMP,
-                'users': []
-            }
         
         # Add the new user to the users list
         new_user = {
