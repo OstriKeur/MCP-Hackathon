@@ -2,39 +2,61 @@
 MCP Server Template
 """
 
+import dotenv
+import firebase_admin
+import os
+import json
+from firebase_admin import credentials, firestore
+from firebase_admin.firestore import DocumentReference
 from mcp.server.fastmcp import FastMCP
 from pydantic import Field
 
 import mcp.types as types
+from tools import register_tools
+
+def initialize_firestore():
+    """
+    Initialize Firestore based on the platform.
+    """
+    # Check if default app already exists
+    try:
+        firebase_admin.get_app()
+        return firestore.client()  # App already exists, just return client
+    except ValueError:
+        # App doesn't exist, initialize it
+        pass
+    
+    if os.environ.get("GCP_DEPLOYMENT", "false").lower() == "true":
+        # Initialize Firestore for GCP
+        firebase_admin.initialize_app()
+    else:
+        # Try to use environment variable first (for GitHub secrets)
+        service_account_json_str = os.environ.get('FIREBASE_SERVICE_ACCOUNT_KEY')
+        if service_account_json_str:
+            try:
+                cred_json = json.loads(service_account_json_str)
+                cred = credentials.Certificate(cred_json)
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin SDK initialized successfully using environment variable.")
+            except json.JSONDecodeError:
+                raise ValueError("FIREBASE_SERVICE_ACCOUNT_KEY contains invalid JSON.")
+        else:
+            # Fallback to local file for development
+            try:
+                cred = credentials.Certificate("cred.json")
+                firebase_admin.initialize_app(cred)
+                print("Firebase Admin SDK initialized using local cred.json file.")
+            except FileNotFoundError:
+                raise ValueError("Neither FIREBASE_SERVICE_ACCOUNT_KEY environment variable nor cred.json file found.")
+    
+    return firestore.client()
+
+db = initialize_firestore()
 
 mcp = FastMCP("Echo Server", port=3000, stateless_http=True, debug=True)
 
-
-@mcp.tool(
-    title="Echo Tool",
-    description="Echo the input text",
-)
-def echo(text: str = Field(description="The text to echo")) -> str:
-    return text
-
-@mcp.tool(
-    title="Add Player",
-    description="Add a new player to the game when providing a game session ID",
-)
-def add_player(session_id: str, player_name: str) -> str:
-    # Logic to add a new player to the game
-    return f"Added player {player_name} with game session ID {session_id}"
-
-
-@mcp.tool(
-    title="Update Score",
-    description="Update the player's score after its response",
-)
-def update_score(player_id: str, score: int) -> str:
-    # Logic to update the player's score in the database
-    return f"Updated score for player {player_id} to {score}"
-
-
+# Register all tools
+register_tools(mcp, db)
 
 @mcp.resource(
     uri="greeting://{name}",
@@ -48,7 +70,7 @@ def get_greeting(
 
 
 @mcp.prompt("")
-def greet_player(
+def greet_user(
     name: str = Field(description="The name of the person to greet"),
     style: str = Field(description="The style of the greeting", default="friendly"),
 ) -> str:

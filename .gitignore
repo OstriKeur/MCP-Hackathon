@@ -33,3 +33,7 @@ out/
 # credentials
 cred.json
 credentials.json
+
+# uv lock files in all directories
+**/*.uv.lock
+**/uv.lock
