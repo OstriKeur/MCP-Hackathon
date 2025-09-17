@@ -174,15 +174,17 @@ question = await get_next_question(session_id="abc123")
   "question_text": "What is photosynthesis?",
   "options": ["Energy conversion", "Water absorption", "Light absorption", "Oxygen production"],
   "question_number": 1,
-  "total_questions": 3
+  "total_questions": 3,
+  "session_status": "ready"
 }
 ```
 
-**Error Response:**
+**Error Responses:**
 ```json
 {
   "error": "No questions available",
-  "message": "This session has no questions configured. Please create the session via the backend API first."
+  "status": "pending_questions",
+  "message": "Questions have not been added to this session yet. Please add questions first."
 }
 ```
 
