@@ -11,8 +11,11 @@ WORKDIR /app
 # Allow statements and log messages to immediately appear in the logs
 ENV PYTHONUNBUFFERED=1
 
-# Install dependencies
-RUN uv sync
+# Set UV cache directory to /tmp which is always writable
+ENV UV_CACHE_DIR=/tmp/uv-cache
+
+# Install dependencies with clean cache
+RUN uv sync --no-cache
 
 EXPOSE 3000
 
