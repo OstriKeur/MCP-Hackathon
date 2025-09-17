@@ -113,29 +113,12 @@ def register_tools(mcp: FastMCP, db_getter):
             session_data = session_doc.to_dict()
             questions = session_data.get('questions', [])
             current_question_index = session_data.get('current_question', 0)
-            session_status = session_data.get('status', 'unknown')
             
             # Check if session has questions
             if not questions:
-                if session_status == 'pending_questions':
-                    return json.dumps({
-                        "error": "No questions available",
-                        "status": "pending_questions",
-                        "message": "Questions have not been added to this session yet. Please add questions first."
-                    }, indent=2)
-                else:
-                    return json.dumps({
-                        "error": "No questions available",
-                        "status": session_status,
-                        "message": "This session has no questions configured."
-                    }, indent=2)
-            
-            # Check if session is ready
-            if session_status != 'ready':
                 return json.dumps({
-                    "error": "Session not ready",
-                    "status": session_status,
-                    "message": f"Session status is '{session_status}'. Session must be 'ready' to get questions."
+                    "error": "No questions available",
+                    "message": "This session has no questions configured. Please create the session via the backend API first."
                 }, indent=2)
             
             # Check if there are more questions available
@@ -156,8 +139,7 @@ def register_tools(mcp: FastMCP, db_getter):
                 "question_text": current_question.get('question'),
                 "options": current_question.get('options', []),
                 "question_number": current_question_index + 1,
-                "total_questions": len(questions),
-                "session_status": session_status
+                "total_questions": len(questions)
             }
             
             return json.dumps(question_data, indent=2)
