@@ -1,3 +1,16 @@
+---
+  title: Kahoot
+  emoji: 📈
+  colorFrom: indigo
+  colorTo: blue
+  sdk: docker
+  pinned: false
+  license: mit
+  short_description: 'A server for playing kahoot wit friends '
+---
+Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+
+
 # MCP Server - Model Context Protocol Integration
 
 A Model Context Protocol (MCP) server that provides tools for quiz session management and game interaction. This server enables AI assistants to directly interact with the quiz game database and manage game sessions through structured tools.
@@ -52,7 +65,66 @@ pip install -r requirements.txt
 
 ## 🔧 Available Tools
 
-### 1. Add User to Session
+### 1. Start Quiz Session
+
+**Tool Name**: `start_session`
+
+**Description**: Create a new quiz session structure (questions must be added separately)
+
+**Parameters**:
+- `theme` (string, optional): Theme for the quiz questions (default: "general knowledge")
+- `num_questions` (int, optional): Number of questions to generate (default: 3)
+
+**Example Usage**:
+```python
+result = await start_session(theme="science", num_questions=5)
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "session_id": "abc123",
+  "theme": "science",
+  "total_questions": 5,
+  "status": "pending_questions",
+  "message": "Quiz session created. 5 questions need to be generated for theme: science"
+}
+```
+
+### 2. Add Questions to Session
+
+**Tool Name**: `add_questions_to_session`
+
+**Description**: Add AI-generated questions to an existing quiz session
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+- `questions` (string): JSON string containing array of questions
+
+**Example Usage**:
+```python
+questions_json = json.dumps([
+  {
+    "id": 1,
+    "question": "What is photosynthesis?",
+    "options": ["Energy conversion", "Water absorption", "Light absorption", "Oxygen production"],
+    "correct": 0
+  }
+])
+result = await add_questions_to_session(session_id="abc123", questions=questions_json)
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "session_id": "abc123",
+  "questions_added": 3,
+  "status": "ready",
+  "message": "Successfully added 3 questions to session"
+}
+```
+
+### 2. Add User to Session
 
 **Tool Name**: `add_user`
 
@@ -64,18 +136,24 @@ pip install -r requirements.txt
 
 **Example Usage**:
 ```python
-# Via MCP protocol
-result = await add_user(
-    session_id="abc123",
-    user_pseudo="PlayerName"
-)
+result = await add_user(session_id="abc123", user_pseudo="PlayerName")
 ```
 
-**Response**: Confirmation message with user addition status
+**Response**: JSON object containing:
+```json
+{
+  "user_id": "def456",
+  "user_pseudo": "PlayerName",
+  "session_id": "abc123",
+  "score": 0,
+  "message": "Successfully added user 'PlayerName' to session 'abc123'",
+  "already_exists": false
+}
+```
 
-### 2. Get Quiz Question
+### 3. Get Next Question
 
-**Tool Name**: `get_quiz_question`
+**Tool Name**: `get_next_question`
 
 **Description**: Retrieve the current question from a quiz session
 
@@ -84,20 +162,214 @@ result = await add_user(
 
 **Example Usage**:
 ```python
-# Via MCP protocol
-question = await get_quiz_question(session_id="abc123")
+question = await get_next_question(session_id="abc123")
+```
+
+**Response**: JSON object containing:
+
+**Success Response:**
+```json
+{
+  "question_id": 1,
+  "question_text": "What is photosynthesis?",
+  "options": ["Energy conversion", "Water absorption", "Light absorption", "Oxygen production"],
+  "question_number": 1,
+  "total_questions": 3,
+  "session_status": "ready"
+}
+```
+
+**Error Responses:**
+```json
+{
+  "error": "No questions available",
+  "status": "pending_questions",
+  "message": "Questions have not been added to this session yet. Please add questions first."
+}
+```
+
+**Quiz Finished Response:**
+```json
+{
+  "finished": true,
+  "message": "Quiz finished - no more questions available",
+  "total_questions": 3,
+  "current_question": 4
+}
+```
+
+### 4. Validate Answer
+
+**Tool Name**: `validate_answer`
+
+**Description**: Check if a submitted answer is correct without updating scores
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+- `question_id` (int): The ID of the question being answered
+- `answer_index` (int): The selected answer index (0-3)
+
+**Example Usage**:
+```python
+result = await validate_answer(session_id="abc123", question_id=1, answer_index=2)
 ```
 
 **Response**: JSON object containing:
 ```json
 {
-  "question_id": 1,
-  "question_text": "What is the capital of France?",
-  "options": ["London", "Berlin", "Paris", "Madrid"],
-  "question_number": 1,
-  "total_questions": 3
+  "correct": true,
+  "correct_answer_index": 2,
+  "submitted_answer_index": 2,
+  "question_id": 1
 }
 ```
+
+### 5. Update User Score
+
+**Tool Name**: `update_score`
+
+**Description**: Update a user's score in the database
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+- `user_pseudo` (string): The pseudo/username of the user
+- `correct` (boolean): Whether the answer was correct
+
+**Example Usage**:
+```python
+result = await update_score(session_id="abc123", user_pseudo="PlayerName", correct=True)
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "user_pseudo": "PlayerName",
+  "new_score": 1,
+  "score_increased": true
+}
+```
+
+### 6. Submit Answer (Consolidated)
+
+**Tool Name**: `submit_answer`
+
+**Description**: Submit answer, validate it, and update score in one atomic operation
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+- `user_pseudo` (string): The pseudo/username of the user
+- `answer_index` (int): The selected answer index (0-3)
+
+**Example Usage**:
+```python
+result = await submit_answer(session_id="abc123", user_pseudo="PlayerName", answer_index=2)
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "correct": true,
+  "correct_answer_index": 2,
+  "submitted_answer_index": 2,
+  "user_pseudo": "PlayerName",
+  "new_score": 1,
+  "question_id": 1
+}
+```
+
+### 7. Advance Question
+
+**Tool Name**: `advance_question`
+
+**Description**: Move to the next question in the quiz session
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+
+**Example Usage**:
+```python
+result = await advance_question(session_id="abc123")
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "previous_question": 1,
+  "current_question": 2,
+  "total_questions": 3,
+  "quiz_finished": false
+}
+```
+
+### 8. Get Live Scores
+
+**Tool Name**: `get_scores`
+
+**Description**: Get the current scoreboard for a quiz session
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+
+**Example Usage**:
+```python
+scores = await get_scores(session_id="abc123")
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "scores": [
+    {"pseudo": "PlayerName", "score": 2},
+    {"pseudo": "Player2", "score": 1}
+  ],
+  "current_question": 2,
+  "total_questions": 3,
+  "session_id": "abc123"
+}
+```
+
+### 9. Get Final Score
+
+**Tool Name**: `get_final_score`
+
+**Description**: Get final results when quiz is completed
+
+**Parameters**:
+- `session_id` (string): The ID of the quiz session
+
+**Example Usage**:
+```python
+final_results = await get_final_score(session_id="abc123")
+```
+
+**Response**: JSON object containing:
+```json
+{
+  "final_scores": [
+    {"pseudo": "PlayerName", "score": 3, "percentage": 100.0, "rank": 1},
+    {"pseudo": "Player2", "score": 2, "percentage": 66.7, "rank": 2}
+  ],
+  "total_questions": 3,
+  "quiz_finished": true,
+  "session_id": "abc123",
+  "theme": "science"
+}
+```
+
+### 10. Health Check
+
+**Tool Name**: `health_check`
+
+**Description**: Quick health check for server status
+
+**Parameters**: None
+
+**Example Usage**:
+```python
+status = await health_check()
+```
+
+**Response**: JSON object containing server status information
 
 ## 🔥 Firebase Integration
 
@@ -191,7 +463,7 @@ const result = await client.callTool("add_user", {
 
 // Get current question
 const question = await client.callTool("get_quiz_question", {
-  session_id: "abc123"
+  session_id: "abc123"  
 });
 ```
 
@@ -230,33 +502,85 @@ All tools include comprehensive error handling:
 
 ## 📊 Usage Examples
 
-### Example 1: Complete Game Flow via MCP
+### Example 1: Complete Quiz Workflow via MCP
 
 ```python
-# 1. Add players to session
-await add_user(session_id="game123", user_pseudo="Alice")
-await add_user(session_id="game123", user_pseudo="Bob")
+# 1. Start a new quiz session
+session = await start_session(theme="science", num_questions=3)
+session_id = json.loads(session)["session_id"]
 
-# 2. Get first question
-question = await get_quiz_question(session_id="game123")
-print(f"Question: {question['question_text']}")
-print(f"Options: {question['options']}")
+# 2. Add players to session
+alice_result = await add_user(session_id=session_id, user_pseudo="Alice")
+bob_result = await add_user(session_id=session_id, user_pseudo="Bob")
 
-# 3. Players would answer via the main game API
-# 4. Host advances question via main game API  
-# 5. Get next question
-next_question = await get_quiz_question(session_id="game123")
+# 3. Get first question
+question = await get_next_question(session_id=session_id)
+question_data = json.loads(question)
+print(f"Question: {question_data['question_text']}")
+print(f"Options: {question_data['options']}")
+
+# 4. Alice answers question 1
+alice_answer = await submit_answer(
+    session_id=session_id, 
+    user_pseudo="Alice", 
+    answer_index=2
+)
+
+# 5. Bob answers question 1
+bob_answer = await submit_answer(
+    session_id=session_id, 
+    user_pseudo="Bob", 
+    answer_index=1
+)
+
+# 6. Check live scores
+scores = await get_scores(session_id=session_id)
+print(f"Current scores: {scores}")
+
+# 7. Advance to next question
+advance_result = await advance_question(session_id=session_id)
+
+# 8. Get question 2
+next_question = await get_next_question(session_id=session_id)
+
+# ... repeat for all questions ...
+
+# 9. Get final results
+final_scores = await get_final_score(session_id=session_id)
+print(f"Final results: {final_scores}")
 ```
 
-### Example 2: Session Management
+### Example 2: Separated Validation Workflow
+
+```python
+# Alternative approach using separate validation and scoring
+# 1. User submits answer
+validation_result = await validate_answer(
+    session_id=session_id,
+    question_id=1,
+    answer_index=2
+)
+
+# 2. Check if correct and update score
+validation_data = json.loads(validation_result)
+if validation_data["correct"]:
+    score_update = await update_score(
+        session_id=session_id,
+        user_pseudo="Alice",
+        correct=True
+    )
+```
+
+### Example 3: Session Management
 
 ```python
 # Check if user already exists
 result = await add_user(session_id="game123", user_pseudo="Alice")
-if "already exists" in result:
-    print("User already in game!")
+result_data = json.loads(result)
+if result_data["already_exists"]:
+    print(f"User already in game with score: {result_data['score']}")
 else:
-    print("User added successfully!")
+    print(f"User added with ID: {result_data['user_id']}")
 ```
 
 ## 🔧 Development & Extension
@@ -341,4 +665,3 @@ python test_mcp_integration.py
 3. **Testing**: Test tools both individually and in workflows
 4. **Documentation**: Update README with new tool documentation
 
-This MCP server provides a bridge between AI assistants and the quiz game system, enabling sophisticated AI-powered game management and interaction capabilities.
