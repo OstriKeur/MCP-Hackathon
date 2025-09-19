@@ -10,5 +10,4 @@ __pycache__/
 .env
 *.log
 README.md
-game_client_demo.py
-cred.json
+game_client_demo.pycred.json

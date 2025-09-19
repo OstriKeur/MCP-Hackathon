@@ -17,9 +17,9 @@ ENV UV_CACHE_DIR=/tmp/uv-cache
 # Install dependencies with clean cache
 RUN uv sync --no-cache
 
-EXPOSE 3000
+EXPOSE 7860
 
-ENV PORT=3000
+ENV PORT=7860
 
 # Run the FastMCP server
 CMD ["uv", "run", "main.py"]

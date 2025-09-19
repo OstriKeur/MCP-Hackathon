@@ -60,7 +60,7 @@ def get_firestore_client():
     _db = firestore.client()
     return _db
 
-mcp = FastMCP("Echo Server", port=3000, stateless_http=True, debug=True, host="0.0.0.0")
+mcp = FastMCP("Echo Server", port=7860, stateless_http=True, debug=True, host="0.0.0.0")
 
 # Import tools registration
 from tools import register_tools
